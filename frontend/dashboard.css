@@ -1,0 +1,142 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Background */
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  padding: 30px;
+  color: #333;
+}
+
+/* Top bar */
+.topbar {
+  max-width: 1200px;
+  margin: auto;
+  margin-bottom: 20px;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  color: white;
+  padding: 18px 25px;
+  border-radius: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar h1 {
+  font-size: 22px;
+}
+
+/* Logout */
+.logout-btn {
+  background: #ff6b6b;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+}
+
+/* GRID LAYOUT */
+.dashboard-grid {
+  max-width: 1200px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: 350px 1fr; /* left small, right big */
+  gap: 20px;
+}
+
+/* Cards */
+.new-entry,
+.posts-section {
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* Section titles */
+.new-entry h2,
+.posts-section h2 {
+  margin-bottom: 15px;
+}
+
+/* Textarea */
+.new-entry textarea {
+  width: 100%;
+  height: 150px;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  resize: none;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+/* Post button */
+.post-btn {
+  width: 100%;
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.post-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+}
+
+/* POSTS AREA BIG */
+.posts {
+  margin-top: 10px;
+}
+
+/* Individual post */
+.post-card {
+  background: #f7f9fc;
+  padding: 18px;
+  border-radius: 15px;
+  margin-bottom: 15px;
+  transition: 0.2s;
+  border: 1px solid #eee;
+}
+
+.post-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+}
+
+.post-card p {
+  color: #555;
+  font-size: 14px;
+}
+
+/* Scroll */
+.posts-section {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
