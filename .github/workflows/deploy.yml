@@ -30,7 +30,7 @@ jobs:
           echo "🚀 Connected to EC2"
 
           # Go to your project directory
-          cd /home/ubuntu/
+          cd /home/ubuntu/DailyJournal
 
           echo "📥 Pulling latest code..."
           git reset --hard   # optional: discard any local changes
@@ -42,6 +42,7 @@ jobs:
 
           echo "🔄 Restarting PM2 server..."
           pm2 restart dailyjournal || pm2 start app.js --name dailyjournal
+          pm2 save
 
           echo "✅ Deployment finished"
           EOF
