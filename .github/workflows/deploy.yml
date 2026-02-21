@@ -37,12 +37,11 @@ jobs:
           git pull origin main
 
           # Install backend dependencies
-          cd backend
+          cd DailyJournal/backend
           npm install
 
           # Restart PM2
-          pm2 delete dailyjournal || true
-          pm2 start app.js --name dailyjournal
+          pm2 restart dailyjournal || pm2 start app.js --name dailyjournal
           pm2 save
 
           echo "✅ Deployment finished"
