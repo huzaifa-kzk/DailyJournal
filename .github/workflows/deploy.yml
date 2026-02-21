@@ -29,18 +29,18 @@ jobs:
 
           echo "🚀 Connected to EC2"
 
-          # Go to repo root (no nested folder!)
-          cd /home/ubuntu
+          # Go to your project folder (actual repo path)
+          cd /home/ubuntu/DailyJournal
 
-          # Pull latest code
+          # Pull latest code from git
           git reset --hard
           git pull origin main
 
           # Install backend dependencies
-          cd DailyJournal/backend
+          cd backend
           npm install
 
-          # Restart PM2
+          # Restart PM2 process
           pm2 restart dailyjournal || pm2 start app.js --name dailyjournal
           pm2 save
 
