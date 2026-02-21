@@ -1,90 +1,118 @@
-const API = "http://localhost:3000/api";
+// Automatically works for localhost AND EC2
+const API = window.location.origin + "/api";
 
-/* SIGNUP */
+/* ===================== SIGNUP ===================== */
 async function signup() {
   const name = document.getElementById("name").value;
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const res = await fetch("http://localhost:3000/api/auth/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password })
-  });
+  try {
+    const res = await fetch(API + "/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password })
+    });
 
-  const data = await res.json();
-  alert(data.message);
+    const data = await res.json();
+    alert(data.message);
+
+  } catch (err) {
+    console.error("Signup error:", err);
+    alert("Server error. Try again.");
+  }
 }
 
-
-/* LOGIN */
+/* ===================== LOGIN ===================== */
 async function login() {
-  const res = await fetch(API + "/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: email.value,
-      password: password.value,
-    }),
-  });
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-  const data = await res.json();
+  try {
+    const res = await fetch(API + "/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-  localStorage.setItem("token", data.token);
+    const data = await res.json();
 
-  window.location = "dashboard.html";
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      window.location = "dashboard.html";
+    } else {
+      alert(data.message);
+    }
+
+  } catch (err) {
+    console.error("Login error:", err);
+    alert("Server error. Try again.");
+  }
 }
 
-/* POST */
-async function post() {
+/* ===================== CREATE POST ===================== */
+async function createPost() {
   const token = localStorage.getItem("token");
+  const content = document.getElementById("content").value;
 
-  const res = await fetch(API + "/posts", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: token,
-    },
-    body: JSON.stringify({
-      content: content.value,
-    }),
-  });
+  if (!token) {
+    alert("Please login first");
+    return;
+  }
 
-  alert((await res.json()).message);
+  try {
+    const res = await fetch(API + "/posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+      body: JSON.stringify({ content }),
+    });
+
+    const data = await res.json();
+    alert(data.message);
+    loadPosts();
+
+  } catch (err) {
+    console.error("Post error:", err);
+    alert("Error creating post");
+  }
 }
 
-/* LOAD POSTS */
+/* ===================== LOAD POSTS ===================== */
 async function loadPosts() {
   try {
     const res = await fetch(API + "/posts");
     const data = await res.json();
 
     const postsDiv = document.getElementById("posts");
-    postsDiv.innerHTML = ""; // Clear previous posts
+    if (!postsDiv) return;
+
+    postsDiv.innerHTML = "";
 
     data.forEach((p) => {
       postsDiv.innerHTML += `
         <div class="post">
-          <b>${p.name}</b> <span class="date">${p.created_at}</span>
+          <b>${p.name}</b> 
+          <span class="date">${p.created_at}</span>
           <p>${p.content}</p>
         </div>
       `;
     });
+
   } catch (err) {
     console.error("Error loading posts:", err);
   }
 }
 
-// Initial load
+/* ===================== AUTO LOAD DASHBOARD ===================== */
 if (window.location.pathname.includes("dashboard")) {
   loadPosts();
-
-  // Refresh every second (1000ms)
-  setInterval(loadPosts, 1000);
+  setInterval(loadPosts, 5000); // refresh every 5 seconds
 }
 
-
-/* LOGOUT */
+/* ===================== LOGOUT ===================== */
 function logout() {
   localStorage.removeItem("token");
   window.location = "login.html";
