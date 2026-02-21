@@ -30,14 +30,14 @@ jobs:
           echo "🚀 Connected to EC2"
 
           # Go to your project directory
-          cd /home/ubuntu/DailyJournal
+          cd /home/ubuntu/
 
           echo "📥 Pulling latest code..."
           git reset --hard   # optional: discard any local changes
           git pull origin main
 
           echo "📦 Installing backend dependencies..."
-          cd backend
+          cd DailyJournal/backend
           npm install
 
           echo "🔄 Restarting PM2 server..."
