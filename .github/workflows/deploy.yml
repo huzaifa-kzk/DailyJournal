@@ -30,7 +30,7 @@ jobs:
           echo "🚀 Connected to EC2"
 
           # Go to your project directory
-          cd /home/ubuntu/DailyJournal
+          cd /home/ubuntu/
 
           echo "📥 Pulling latest code..."
           git reset --hard   # optional: discard any local changes
