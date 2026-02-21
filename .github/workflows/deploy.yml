@@ -3,14 +3,14 @@ name: Deploy DailyJournal to EC2
 on:
   push:
     branches:
-      - main  # deploy on pushes to main branch
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -22,26 +22,27 @@ jobs:
           chmod 600 ~/.ssh/gitkey
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      # 3️⃣ Connect to EC2 & deploy
+      # 3️⃣ Connect & deploy
       - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/gitkey ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
 
           echo "🚀 Connected to EC2"
 
-          # Go to your project directory
-          cd /home/ubuntu/
+          # Go to repo root (no nested folder!)
+          cd /home/ubuntu
 
-          echo "📥 Pulling latest code..."
-          git reset --hard   # optional: discard any local changes
+          # Pull latest code
+          git reset --hard
           git pull origin main
 
-          echo "📦 Installing backend dependencies..."
-          cd DailyJournal/backend
+          # Install backend dependencies
+          cd backend
           npm install
 
-          echo "🔄 Restarting PM2 server..."
-          pm2 restart dailyjournal || pm2 start app.js --name dailyjournal
+          # Restart PM2
+          pm2 delete dailyjournal || true
+          pm2 start app.js --name dailyjournal
           pm2 save
 
           echo "✅ Deployment finished"
