@@ -22,7 +22,7 @@ router.post("/register", async (req, res) => {
       (err) => {
         if (err) {
           console.error("DB ERROR (register):", err);
-          return res.status(400).json({ message: "Email exists or DB error" });
+          return res.status(400).json({ message: "Email exists" });
         }
 
         res.json({ message: "User registered" });
