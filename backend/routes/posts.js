@@ -50,5 +50,22 @@ router.get("/", (req, res) => {
     }
   );
 });
+// DELETE post by id (only if owned by user)
+router.delete("/:id", auth, (req, res) => {
+  const postId = req.params.id;
+  const userId = req.user.id;
 
+  db.query(
+    "DELETE FROM posts WHERE id=? AND user_id=?",
+    [postId, userId],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+
+      if (result.affectedRows === 0)
+        return res.status(403).json({ message: "Cannot delete this post" });
+
+      res.json({ message: "Post deleted" });
+    }
+  );
+});
 module.exports = router;
