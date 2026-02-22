@@ -1,31 +1,3 @@
-const express = require("express");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const db = require("../db");
-
-const router = express.Router();
-
-/* REGISTER */
-router.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password)
-    return res.status(400).json({ message: "All fields required" });
-
-  const hashed = await bcrypt.hash(password, 10);
-
-  db.query(
-    "INSERT INTO users(name,email,password) VALUES(?,?,?)",
-    [name, email, hashed],
-    (err) => {
-      if (err) return res.status(400).json({ message: "Email exists" });
-
-      res.json({ message: "User registered" });
-    }
-  );
-});
-
-/* LOGIN */
 router.post("/login", (req, res) => {
   const { email, password } = req.body;
 
@@ -33,7 +5,13 @@ router.post("/login", (req, res) => {
     "SELECT * FROM users WHERE email=?",
     [email],
     async (err, result) => {
-      if (result.length === 0)
+
+      if (err) {
+        console.log("DB ERROR:", err);
+        return res.status(500).json({ message: "Database error" });
+      }
+
+      if (!result || result.length === 0)
         return res.status(400).json({ message: "User not found" });
 
       const user = result[0];
@@ -52,5 +30,3 @@ router.post("/login", (req, res) => {
     }
   );
 });
-
-module.exports = router;
