@@ -4,7 +4,7 @@ const db = require("../db");
 
 const router = express.Router();
 
-/* AUTH MIDDLEWARE */
+/* ===================== AUTH MIDDLEWARE ===================== */
 function auth(req, res, next) {
   const token = req.headers.authorization;
 
@@ -19,7 +19,7 @@ function auth(req, res, next) {
   });
 }
 
-/* CREATE POST (UNLIMITED) */
+/* ===================== CREATE POST (UNLIMITED) ===================== */
 router.post("/", auth, (req, res) => {
   const { content } = req.body;
   const userId = req.user.id;
@@ -40,17 +40,22 @@ router.post("/", auth, (req, res) => {
   );
 });
 
-/* GET POSTS */
+/* ===================== GET POSTS ===================== */
 router.get("/", (req, res) => {
-  db.query(
-    "SELECT users.name, posts.content, posts.created_at FROM posts JOIN users ON posts.user_id=users.id ORDER BY posts.created_at DESC",
-    (err, data) => {
-      if (err) return res.status(500).json({ message: "Database error" });
-      res.json(data);
-    }
-  );
+  const query = `
+    SELECT posts.id, posts.user_id, users.name, posts.content, posts.created_at
+    FROM posts 
+    JOIN users ON posts.user_id = users.id
+    ORDER BY posts.created_at DESC
+  `;
+
+  db.query(query, (err, data) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    res.json(data);
+  });
 });
-// DELETE post by id (only if owned by user)
+
+/* ===================== DELETE POST ===================== */
 router.delete("/:id", auth, (req, res) => {
   const postId = req.params.id;
   const userId = req.user.id;
@@ -68,4 +73,5 @@ router.delete("/:id", auth, (req, res) => {
     }
   );
 });
+
 module.exports = router;
