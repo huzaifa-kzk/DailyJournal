@@ -50,6 +50,25 @@ async function login() {
   }
 }
 
+// Wait until page loads
+document.addEventListener("DOMContentLoaded", function () {
+
+  const textarea = document.getElementById("content");
+
+  // 🔥 Press Enter to send
+  textarea.addEventListener("keydown", function (event) {
+
+    // If Enter pressed WITHOUT Shift
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();   // stop new line
+      createPost();             // send message
+    }
+
+  });
+
+});
+
+
 /* ===================== CREATE POST ===================== */
 async function createPost() {
   const token = localStorage.getItem("token");
@@ -62,8 +81,7 @@ async function createPost() {
   }
 
   if (!content) {
-    alert("Post cannot be empty");
-    return;
+    return; // don't send empty message
   }
 
   try {
@@ -83,16 +101,20 @@ async function createPost() {
       return;
     }
 
+    // ✅ Clear textbox after successful post
     contentInput.value = "";
 
+    // Reload posts
     loadPosts();
+
+    // Focus back to textarea
+    contentInput.focus();
 
   } catch (err) {
     console.error("Post error:", err);
     alert("Error creating post");
   }
 }
-
 /* ===================== LOAD POSTS ===================== */
 async function loadPosts() {
   const token = localStorage.getItem("token");
