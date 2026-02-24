@@ -72,7 +72,7 @@ async function createPost() {
 
     const data = await res.json();
     alert(data.message);
-    contentInput.value = "";   
+    
     loadPosts();
 
   } catch (err) {
