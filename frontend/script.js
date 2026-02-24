@@ -53,10 +53,16 @@ async function login() {
 /* ===================== CREATE POST ===================== */
 async function createPost() {
   const token = localStorage.getItem("token");
-  const content = document.getElementById("content").value;
+  const contentInput = document.getElementById("content");
+  const content = contentInput.value.trim();
 
   if (!token) {
     alert("Please login first");
+    return;
+  }
+
+  if (!content) {
+    alert("Post cannot be empty");
     return;
   }
 
@@ -71,8 +77,14 @@ async function createPost() {
     });
 
     const data = await res.json();
-    alert(data.message);
-    
+
+    if (!res.ok) {
+      alert(data.message || "Error creating post");
+      return;
+    }
+
+    contentInput.value = "";
+
     loadPosts();
 
   } catch (err) {
