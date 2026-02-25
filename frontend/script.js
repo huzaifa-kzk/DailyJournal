@@ -116,6 +116,7 @@ async function createPost() {
   }
 }
 /* ===================== LOAD POSTS ===================== */
+/* ===================== LOAD POSTS ===================== */
 async function loadPosts() {
   const token = localStorage.getItem("token");
   let userId = null;
@@ -136,19 +137,35 @@ async function loadPosts() {
     postsDiv.innerHTML = "";
 
     data.forEach((p) => {
+
+      // 🔥 Check if message is mine
+      const isMyMessage = userId === p.user_id;
+
       postsDiv.innerHTML += `
-        <div class="post">
-          <b>${p.name}</b> 
-          <span class="date">${p.created_at}</span>
-          <p>${p.content}</p>
+        <div class="message ${isMyMessage ? "my-message" : "other-message"}">
+          
+          <div class="message-header">
+            <b>${p.name}</b>
+            <span class="date">${p.created_at}</span>
+          </div>
+
+          <div class="message-content">
+            ${p.content}
+          </div>
+
           ${
-            userId === p.user_id
+            isMyMessage
               ? `<button class="delete-btn" onclick="deletePost(${p.id})">Delete</button>`
               : ""
           }
+
         </div>
       `;
     });
+
+    // 🔥 Auto scroll to bottom
+    postsDiv.scrollTop = postsDiv.scrollHeight;
+
   } catch (err) {
     console.error("Error loading posts:", err);
   }
