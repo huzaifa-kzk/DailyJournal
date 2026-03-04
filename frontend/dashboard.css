@@ -1,4 +1,4 @@
-/* Reset */
+/* ================= RESET ================= */
 * {
   margin: 0;
   padding: 0;
@@ -6,7 +6,7 @@
   font-family: 'Roboto', sans-serif;
 }
 
-/* Background */
+/* ================= BACKGROUND ================= */
 body {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea, #764ba2);
@@ -14,7 +14,7 @@ body {
   color: #333;
 }
 
-/* Top bar */
+/* ================= TOP BAR ================= */
 .topbar {
   max-width: 1200px;
   margin: auto;
@@ -33,7 +33,7 @@ body {
   font-size: 22px;
 }
 
-/* Logout */
+/* Logout Button */
 .logout-btn {
   background: #ff6b6b;
   border: none;
@@ -49,16 +49,16 @@ body {
   box-shadow: 0 5px 10px rgba(0,0,0,0.2);
 }
 
-/* GRID LAYOUT */
+/* ================= GRID LAYOUT ================= */
 .dashboard-grid {
   max-width: 1200px;
   margin: auto;
   display: grid;
-  grid-template-columns: 350px 1fr; /* left small, right big */
+  grid-template-columns: 350px 1fr;
   gap: 20px;
 }
 
-/* Cards */
+/* ================= CARDS ================= */
 .new-entry,
 .posts-section {
   background: white;
@@ -67,13 +67,13 @@ body {
   box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
 
-/* Section titles */
+/* Section Titles */
 .new-entry h2,
 .posts-section h2 {
   margin-bottom: 15px;
 }
 
-/* Textarea */
+/* ================= TEXTAREA ================= */
 .new-entry textarea {
   width: 100%;
   height: 150px;
@@ -83,9 +83,19 @@ body {
   resize: none;
   margin-bottom: 12px;
   font-size: 14px;
+  outline: none;
 }
 
-/* Post button */
+.new-entry textarea:focus {
+  border-color: #667eea;
+}
+
+/* File Input */
+.new-entry input[type="file"] {
+  margin-bottom: 12px;
+}
+
+/* ================= POST BUTTON ================= */
 .post-btn {
   width: 100%;
   background: #667eea;
@@ -103,53 +113,23 @@ body {
   box-shadow: 0 5px 10px rgba(0,0,0,0.2);
 }
 
-/* POSTS AREA BIG */
-.posts {
-  margin-top: 10px;
-}
-
-/* Individual post */
-.post-card {
-  background: #f7f9fc;
-  padding: 18px;
-  border-radius: 15px;
-  margin-bottom: 15px;
-  transition: 0.2s;
-  border: 1px solid #eee;
-}
-
-.post-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.08);
-}
-
-.post-card p {
-  color: #555;
-  font-size: 14px;
-}
-
-/* Scroll */
+/* ================= CHAT SECTION ================= */
 .posts-section {
+  display: flex;
+  flex-direction: column;
   max-height: 70vh;
   overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
-/* Mobile */
-@media (max-width: 900px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-/* ================= CHAT STYLE ================= */
-
-/* Make posts container flex column */
+/* Posts container */
 #posts {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* Chat bubble base */
+/* ================= CHAT BUBBLES ================= */
 .message {
   max-width: 65%;
   padding: 12px 16px;
@@ -161,36 +141,56 @@ body {
   position: relative;
 }
 
-/* My messages (RIGHT SIDE) */
+/* My Messages (Right) */
 .my-message {
   align-self: flex-end;
   background: #7a8ddf;
+  color: white;
   border-bottom-right-radius: 5px;
 }
 
-/* Other messages (LEFT SIDE) */
+/* Other Messages (Left) */
 .other-message {
   align-self: flex-start;
   background: #f1f0f0;
   border-bottom-left-radius: 5px;
 }
 
-/* Header (name + date) */
+/* ================= HEADER (Name + Date) ================= */
 .message-header {
   font-size: 11px;
-  opacity: 0.6;
+  opacity: 0.7;
   margin-bottom: 5px;
   display: flex;
   justify-content: space-between;
 }
 
-/* Content */
+/* ================= CONTENT ================= */
 .message-content {
   font-size: 14px;
   line-height: 1.4;
 }
 
-/* Delete button inside bubble */
+.message-content p {
+  margin: 0;
+}
+
+/* ================= IMAGE STYLING ================= */
+.chat-image {
+  max-width: 100%;
+  max-height: 250px;
+  margin-top: 8px;
+  border-radius: 12px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.chat-image:hover {
+  transform: scale(1.03);
+}
+
+/* ================= DELETE BUTTON ================= */
 .delete-btn {
   align-self: flex-end;
   margin-top: 6px;
@@ -201,18 +201,17 @@ body {
   cursor: pointer;
 }
 
-/* Make posts-section feel like chat window */
-.posts-section {
-  display: flex;
-  flex-direction: column;
+.delete-btn:hover {
+  text-decoration: underline;
 }
 
-.posts-section h2 {
-  margin-bottom: 10px;
-}
+/* ================= MOBILE RESPONSIVE ================= */
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 
-.posts-section {
-  max-height: 70vh;
-  overflow-y: auto;
-  scroll-behavior: smooth;
+  .message {
+    max-width: 80%;
+  }
 }

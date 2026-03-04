@@ -50,29 +50,11 @@ async function login() {
   }
 }
 
-// Wait until page loads
-document.addEventListener("DOMContentLoaded", function () {
-
-  const textarea = document.getElementById("content");
-
-  // 🔥 Press Enter to send
-  textarea.addEventListener("keydown", function (event) {
-
-    // If Enter pressed WITHOUT Shift
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();   // stop new line
-      createPost();             // send message
-    }
-
-  });
-
-});
-
-
 /* ===================== CREATE POST ===================== */
 async function createPost() {
   const token = localStorage.getItem("token");
   const contentInput = document.getElementById("content");
+  const fileInput = document.getElementById("image"); // optional image input
   const content = contentInput.value.trim();
 
   if (!token) {
@@ -80,18 +62,22 @@ async function createPost() {
     return;
   }
 
-  if (!content) {
+  if (!content && (!fileInput || !fileInput.files.length)) {
     return; // don't send empty message
   }
 
   try {
+    // Use FormData to send text + optional image
+    const formData = new FormData();
+    formData.append("content", content);
+    if (fileInput && fileInput.files.length > 0) {
+      formData.append("image", fileInput.files[0]);
+    }
+
     const res = await fetch(API + "/posts", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-      body: JSON.stringify({ content }),
+      headers: { Authorization: token },
+      body: formData,
     });
 
     const data = await res.json();
@@ -101,13 +87,11 @@ async function createPost() {
       return;
     }
 
-    // ✅ Clear textbox after successful post
+    // ✅ Clear inputs after successful post
     contentInput.value = "";
+    if (fileInput) fileInput.value = "";
 
-    // Reload posts
     loadPosts();
-
-    // Focus back to textarea
     contentInput.focus();
 
   } catch (err) {
@@ -115,13 +99,12 @@ async function createPost() {
     alert("Error creating post");
   }
 }
-/* ===================== LOAD POSTS ===================== */
+
 /* ===================== LOAD POSTS ===================== */
 async function loadPosts() {
   const token = localStorage.getItem("token");
   let userId = null;
 
-  // Decode JWT to get current user id
   if (token) {
     const payload = JSON.parse(atob(token.split(".")[1]));
     userId = payload.id;
@@ -137,20 +120,25 @@ async function loadPosts() {
     postsDiv.innerHTML = "";
 
     data.forEach((p) => {
-
-      // 🔥 Check if message is mine
       const isMyMessage = userId === p.user_id;
+
+      // Handle image if exists
+      let imageHTML = "";
+      if (p.image_url) {
+        imageHTML = `<img src="${p.image_url}" alt="image" class="chat-image">`;
+      }
 
       postsDiv.innerHTML += `
         <div class="message ${isMyMessage ? "my-message" : "other-message"}">
           
           <div class="message-header">
             <b>${p.name}</b>
-            <span class="date">${p.created_at}</span>
+            <span class="date">${new Date(p.created_at).toLocaleString()}</span>
           </div>
 
           <div class="message-content">
-            ${p.content}
+            ${p.content ? `<p>${p.content}</p>` : ""}
+            ${imageHTML}
           </div>
 
           ${
@@ -163,13 +151,13 @@ async function loadPosts() {
       `;
     });
 
-    // 🔥 Auto scroll to bottom
     postsDiv.scrollTop = postsDiv.scrollHeight;
 
   } catch (err) {
     console.error("Error loading posts:", err);
   }
 }
+
 /* ===================== DELETE POST ===================== */
 async function deletePost(postId) {
   const token = localStorage.getItem("token");
@@ -192,10 +180,11 @@ async function deletePost(postId) {
     alert("Could not delete post");
   }
 }
+
 /* ===================== AUTO LOAD DASHBOARD ===================== */
 if (window.location.pathname.includes("dashboard")) {
   loadPosts();
-  setInterval(loadPosts, 5000); // refresh every 5 seconds
+  setInterval(loadPosts, 5000);
 }
 
 /* ===================== LOGOUT ===================== */
@@ -203,3 +192,14 @@ function logout() {
   localStorage.removeItem("token");
   window.location = "login.html";
 }
+
+/* ===================== ENTER TO SEND ===================== */
+document.addEventListener("DOMContentLoaded", function () {
+  const textarea = document.getElementById("content");
+  textarea.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      createPost();
+    }
+  });
+});

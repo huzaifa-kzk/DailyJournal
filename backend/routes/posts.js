@@ -1,54 +1,79 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const db = require("../db");
-
+const multer = require("multer");
+const multerS3 = require("multer-s3");
+const s3 = require("../s3"); // your s3.js config
 const router = express.Router();
 
 /* ===================== AUTH MIDDLEWARE ===================== */
 function auth(req, res, next) {
   const token = req.headers.authorization;
-
-  if (!token)
-    return res.status(403).json({ message: "No token" });
+  if (!token) return res.status(403).json({ message: "No token" });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) return res.status(403).json({ message: "Invalid token" });
-
     req.user = user;
     next();
   });
 }
 
-/* ===================== CREATE POST (UNLIMITED) ===================== */
-router.post("/", auth, (req, res) => {
+/* ===================== S3 MULTER SETUP ===================== */
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.AWS_BUCKET_NAME,
+    acl: "public-read", // allows anyone to view
+    key: (req, file, cb) => {
+      const fileName = Date.now().toString() + "_" + file.originalname;
+      cb(null, fileName);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // max 5MB
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype === "image/jpeg" ||
+      file.mimetype === "image/png" ||
+      file.mimetype === "image/gif"
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPG, PNG, GIF allowed"));
+    }
+  },
+});
+
+/* ===================== CREATE POST (TEXT + IMAGE) ===================== */
+router.post("/", auth, upload.single("image"), (req, res) => {
   const { content } = req.body;
   const userId = req.user.id;
+  const now = new Date().toISOString();
 
-  if (!content)
-    return res.status(400).json({ message: "Content required" });
+  let imageUrl = null;
+  if (req.file && req.file.location) {
+    imageUrl = req.file.location; // S3 URL
+  }
 
-  const now = new Date().toISOString(); // full timestamp
+  if (!content && !imageUrl)
+    return res.status(400).json({ message: "Post must have text or image" });
 
-  db.query(
-    "INSERT INTO posts(user_id, content, created_at) VALUES (?, ?, ?)",
-    [userId, content, now],
-    (err) => {
-      if (err) return res.status(500).json({ message: "Database error" });
+  const query =
+    "INSERT INTO posts(user_id, content, image_url, created_at) VALUES (?, ?, ?, ?)";
 
-      res.json({ message: "Post added" });
-    }
-  );
+  db.query(query, [userId, content || null, imageUrl, now], (err) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    res.json({ message: "Post added", imageUrl });
+  });
 });
 
 /* ===================== GET POSTS ===================== */
 router.get("/", (req, res) => {
   const query = `
-    SELECT posts.id, posts.user_id, users.name, posts.content, posts.created_at
-    FROM posts 
+    SELECT posts.id, posts.user_id, users.name, posts.content, posts.image_url, posts.created_at
+    FROM posts
     JOIN users ON posts.user_id = users.id
     ORDER BY posts.created_at DESC
   `;
-
   db.query(query, (err, data) => {
     if (err) return res.status(500).json({ message: "Database error" });
     res.json(data);
@@ -65,10 +90,8 @@ router.delete("/:id", auth, (req, res) => {
     [postId, userId],
     (err, result) => {
       if (err) return res.status(500).json({ message: "Server error" });
-
       if (result.affectedRows === 0)
         return res.status(403).json({ message: "Cannot delete this post" });
-
       res.json({ message: "Post deleted" });
     }
   );
