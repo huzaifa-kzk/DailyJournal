@@ -23,7 +23,7 @@ const upload = multer({
   storage: multerS3({
     s3: s3,
     bucket: process.env.AWS_BUCKET_NAME,
-    acl: null,
+    
     key: (req, file, cb) => {
       const fileName = Date.now().toString() + "_" + file.originalname;
       cb(null, fileName);
