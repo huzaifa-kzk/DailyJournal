@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const db = require("../db");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
-const s3 = require("../s3"); // your s3.js config
+const s3 = require("../s3");
 const router = express.Router();
 
 /* ===================== AUTH MIDDLEWARE ===================== */
@@ -23,8 +23,6 @@ const upload = multer({
   storage: multerS3({
     s3: s3,
     bucket: process.env.AWS_BUCKET_NAME,
-    // FIX: Remove the acl parameter completely
-    // Don't set acl at all - just use metadata
     metadata: (req, file, cb) => {
       cb(null, { fieldName: file.fieldname });
     },
@@ -53,20 +51,62 @@ router.post("/", auth, upload.single("image"), (req, res) => {
   const userId = req.user.id;
   const now = new Date().toISOString();
 
+  // DEBUG: Log the entire req.file object
+  console.log("===== FILE UPLOAD DEBUG =====");
+  console.log("req.file:", req.file);
+  console.log("req.file?.location:", req.file?.location);
+  console.log("req.file?.key:", req.file?.key);
+  console.log("req.file?.path:", req.file?.path);
+  console.log("req.body:", req.body);
+  console.log("==============================");
+
   let imageUrl = null;
-  if (req.file && req.file.location) {
-    imageUrl = req.file.location; // S3 URL
+  
+  if (req.file) {
+    // Try to get the URL from different possible locations
+    if (req.file.location) {
+      imageUrl = req.file.location;
+      console.log("Using location URL:", imageUrl);
+    } else if (req.file.key) {
+      // Construct URL manually if location isn't available
+      const region = process.env.AWS_REGION || 'us-east-1';
+      const bucket = process.env.AWS_BUCKET_NAME;
+      const key = req.file.key;
+      
+      // Try different URL formats
+      imageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+      console.log("Constructed URL from key:", imageUrl);
+    } else if (req.file.path) {
+      imageUrl = req.file.path;
+      console.log("Using path URL:", imageUrl);
+    }
   }
 
-  if (!content && !imageUrl)
+  if (!content && !imageUrl) {
     return res.status(400).json({ message: "Post must have text or image" });
+  }
 
-  const query =
-    "INSERT INTO posts(user_id, content, image_url, created_at) VALUES (?, ?, ?, ?)";
+  const query = "INSERT INTO posts(user_id, content, image_url, created_at) VALUES (?, ?, ?, ?)";
+  const params = [userId, content || null, imageUrl, now];
+  
+  console.log("SQL Query:", query);
+  console.log("SQL Params:", params);
+  console.log("Final imageUrl being saved:", imageUrl);
 
-  db.query(query, [userId, content || null, imageUrl, now], (err) => {
-    if (err) return res.status(500).json({ message: "Database error" });
-    res.json({ message: "Post added", imageUrl });
+  db.query(query, params, (err, result) => {
+    if (err) {
+      console.error("Database error details:", err);
+      return res.status(500).json({ 
+        message: "Database error", 
+        error: err.message 
+      });
+    }
+    console.log("Post inserted successfully, ID:", result.insertId);
+    res.json({ 
+      message: "Post added", 
+      imageUrl: imageUrl,
+      postId: result.insertId 
+    });
   });
 });
 
@@ -78,8 +118,22 @@ router.get("/", (req, res) => {
     JOIN users ON posts.user_id = users.id
     ORDER BY posts.created_at DESC
   `;
+  
   db.query(query, (err, data) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+    if (err) {
+      console.error("Error fetching posts:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+    
+    // Log sample image URL to debug
+    if (data.length > 0) {
+      const postsWithImages = data.filter(p => p.image_url);
+      console.log(`Found ${postsWithImages.length} posts with images`);
+      if (postsWithImages.length > 0) {
+        console.log("Sample image URL:", postsWithImages[0].image_url);
+      }
+    }
+    
     res.json(data);
   });
 });
@@ -89,16 +143,33 @@ router.delete("/:id", auth, (req, res) => {
   const postId = req.params.id;
   const userId = req.user.id;
 
-  db.query(
-    "DELETE FROM posts WHERE id=? AND user_id=?",
-    [postId, userId],
-    (err, result) => {
-      if (err) return res.status(500).json({ message: "Server error" });
-      if (result.affectedRows === 0)
-        return res.status(403).json({ message: "Cannot delete this post" });
-      res.json({ message: "Post deleted" });
+  // First, get the image_url to delete from S3 later (optional)
+  db.query("SELECT image_url FROM posts WHERE id=? AND user_id=?", [postId, userId], (err, results) => {
+    if (err) {
+      console.error("Error fetching post for deletion:", err);
+      return res.status(500).json({ message: "Server error" });
     }
-  );
+
+    if (results.length === 0) {
+      return res.status(403).json({ message: "Cannot delete this post" });
+    }
+
+    const imageUrl = results[0].image_url;
+
+    // Delete from database
+    db.query("DELETE FROM posts WHERE id=? AND user_id=?", [postId, userId], (err, result) => {
+      if (err) {
+        console.error("Error deleting post:", err);
+        return res.status(500).json({ message: "Server error" });
+      }
+      
+      // TODO: Optionally delete image from S3 here
+      // You would need to extract the key from imageUrl and delete from S3
+      
+      console.log(`Post ${postId} deleted successfully`);
+      res.json({ message: "Post deleted" });
+    });
+  });
 });
 
 module.exports = router;
