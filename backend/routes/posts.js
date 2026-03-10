@@ -51,28 +51,21 @@ router.post("/", auth, upload.single("image"), (req, res) => {
   const userId = req.user.id;
   const now = new Date().toISOString();
 
-  console.log("===== FILE UPLOAD DEBUG =====");
-  console.log("req.file:", req.file);
-  console.log("req.body.content:", content);
-  console.log("==============================");
-
   let imageUrl = null;
   
   if (req.file) {
     if (req.file.location) {
       imageUrl = req.file.location;
-      console.log("Using location URL:", imageUrl);
     } else if (req.file.key) {
       const region = process.env.AWS_REGION || 'us-east-1';
       const bucket = process.env.AWS_BUCKET_NAME;
       const key = req.file.key;
       imageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
-      console.log("Constructed URL from key:", imageUrl);
     }
   }
 
-  // FIX: If there's no content but there is an image, use empty string instead of NULL
-  const contentValue = content || "";  // Use empty string instead of null
+  // Use empty string if no content (to avoid NULL error)
+  const contentValue = content || "";
   
   if (!contentValue && !imageUrl) {
     return res.status(400).json({ message: "Post must have text or image" });
@@ -80,20 +73,15 @@ router.post("/", auth, upload.single("image"), (req, res) => {
 
   const query = "INSERT INTO posts(user_id, content, image_url, created_at) VALUES (?, ?, ?, ?)";
   const params = [userId, contentValue, imageUrl, now];
-  
-  console.log("SQL Query:", query);
-  console.log("SQL Params:", params);
-  console.log("Final imageUrl being saved:", imageUrl);
 
   db.query(query, params, (err, result) => {
     if (err) {
-      console.error("Database error details:", err);
+      console.error("Database error:", err);
       return res.status(500).json({ 
-        message: "Database error", 
-        error: err.message 
+        message: "Database error" 
       });
     }
-    console.log("Post inserted successfully, ID:", result.insertId);
+    
     res.json({ 
       message: "Post added", 
       imageUrl: imageUrl,
@@ -116,10 +104,6 @@ router.get("/", (req, res) => {
       console.error("Error fetching posts:", err);
       return res.status(500).json({ message: "Database error" });
     }
-    
-    // Log posts with images
-    const postsWithImages = data.filter(p => p.image_url);
-    console.log(`Found ${postsWithImages.length} posts with images`);
     
     res.json(data);
   });
@@ -146,7 +130,6 @@ router.delete("/:id", auth, (req, res) => {
         return res.status(500).json({ message: "Server error" });
       }
       
-      console.log(`Post ${postId} deleted successfully`);
       res.json({ message: "Post deleted" });
     });
   });
