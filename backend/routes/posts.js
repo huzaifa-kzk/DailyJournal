@@ -51,43 +51,35 @@ router.post("/", auth, upload.single("image"), (req, res) => {
   const userId = req.user.id;
   const now = new Date().toISOString();
 
-  // DEBUG: Log the entire req.file object
   console.log("===== FILE UPLOAD DEBUG =====");
   console.log("req.file:", req.file);
-  console.log("req.file?.location:", req.file?.location);
-  console.log("req.file?.key:", req.file?.key);
-  console.log("req.file?.path:", req.file?.path);
-  console.log("req.body:", req.body);
+  console.log("req.body.content:", content);
   console.log("==============================");
 
   let imageUrl = null;
   
   if (req.file) {
-    // Try to get the URL from different possible locations
     if (req.file.location) {
       imageUrl = req.file.location;
       console.log("Using location URL:", imageUrl);
     } else if (req.file.key) {
-      // Construct URL manually if location isn't available
       const region = process.env.AWS_REGION || 'us-east-1';
       const bucket = process.env.AWS_BUCKET_NAME;
       const key = req.file.key;
-      
-      // Try different URL formats
       imageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
       console.log("Constructed URL from key:", imageUrl);
-    } else if (req.file.path) {
-      imageUrl = req.file.path;
-      console.log("Using path URL:", imageUrl);
     }
   }
 
-  if (!content && !imageUrl) {
+  // FIX: If there's no content but there is an image, use empty string instead of NULL
+  const contentValue = content || "";  // Use empty string instead of null
+  
+  if (!contentValue && !imageUrl) {
     return res.status(400).json({ message: "Post must have text or image" });
   }
 
   const query = "INSERT INTO posts(user_id, content, image_url, created_at) VALUES (?, ?, ?, ?)";
-  const params = [userId, content || null, imageUrl, now];
+  const params = [userId, contentValue, imageUrl, now];
   
   console.log("SQL Query:", query);
   console.log("SQL Params:", params);
@@ -125,14 +117,9 @@ router.get("/", (req, res) => {
       return res.status(500).json({ message: "Database error" });
     }
     
-    // Log sample image URL to debug
-    if (data.length > 0) {
-      const postsWithImages = data.filter(p => p.image_url);
-      console.log(`Found ${postsWithImages.length} posts with images`);
-      if (postsWithImages.length > 0) {
-        console.log("Sample image URL:", postsWithImages[0].image_url);
-      }
-    }
+    // Log posts with images
+    const postsWithImages = data.filter(p => p.image_url);
+    console.log(`Found ${postsWithImages.length} posts with images`);
     
     res.json(data);
   });
@@ -143,7 +130,6 @@ router.delete("/:id", auth, (req, res) => {
   const postId = req.params.id;
   const userId = req.user.id;
 
-  // First, get the image_url to delete from S3 later (optional)
   db.query("SELECT image_url FROM posts WHERE id=? AND user_id=?", [postId, userId], (err, results) => {
     if (err) {
       console.error("Error fetching post for deletion:", err);
@@ -154,17 +140,11 @@ router.delete("/:id", auth, (req, res) => {
       return res.status(403).json({ message: "Cannot delete this post" });
     }
 
-    const imageUrl = results[0].image_url;
-
-    // Delete from database
     db.query("DELETE FROM posts WHERE id=? AND user_id=?", [postId, userId], (err, result) => {
       if (err) {
         console.error("Error deleting post:", err);
         return res.status(500).json({ message: "Server error" });
       }
-      
-      // TODO: Optionally delete image from S3 here
-      // You would need to extract the key from imageUrl and delete from S3
       
       console.log(`Post ${postId} deleted successfully`);
       res.json({ message: "Post deleted" });
