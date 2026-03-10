@@ -167,7 +167,7 @@ async function loadPosts() {
           
           <div class="message-header">
             <b>${p.name}</b>
-            <span class="date">  | ${formattedTime}</span>
+            <span class="date"> — ${formattedTime}</span>
           </div>
 
           <div class="message-content">
@@ -191,7 +191,6 @@ async function loadPosts() {
     console.error("Error loading posts:", err);
   }
 }
-
 /* ===================== DELETE POST ===================== */
 async function deletePost(postId) {
   const token = localStorage.getItem("token");
