@@ -100,6 +100,37 @@ async function createPost() {
   }
 }
 
+/* ===================== HELPER FUNCTION TO FORMAT TIME ===================== */
+function formatMessageTime(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  // Format time (e.g., "3:45 PM")
+  let hours = date.getHours();
+  let minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // 0 becomes 12
+  minutes = minutes < 10 ? '0' + minutes : minutes;
+  const timeString = `${hours}:${minutes} ${ampm}`;
+  
+  // Check if it's today
+  if (date.toDateString() === now.toDateString()) {
+    return `Today at ${timeString}`;
+  }
+  // Check if it's yesterday
+  else if (date.toDateString() === yesterday.toDateString()) {
+    return `Yesterday at ${timeString}`;
+  }
+  // Otherwise show the date
+  else {
+    const options = { month: 'short', day: 'numeric', year: 'numeric' };
+    return `${date.toLocaleDateString('en-US', options)} at ${timeString}`;
+  }
+}
+
 /* ===================== LOAD POSTS ===================== */
 async function loadPosts() {
   const token = localStorage.getItem("token");
@@ -122,6 +153,9 @@ async function loadPosts() {
     data.forEach((p) => {
       const isMyMessage = userId === p.user_id;
 
+      // Format the time nicely
+      const formattedTime = formatMessageTime(p.created_at);
+
       // Handle image if exists
       let imageHTML = "";
       if (p.image_url) {
@@ -133,7 +167,7 @@ async function loadPosts() {
           
           <div class="message-header">
             <b>${p.name}</b>
-            <span class="date">${new Date(p.created_at).toLocaleString()}</span>
+            <span class="date">${formattedTime}</span>
           </div>
 
           <div class="message-content">
@@ -196,10 +230,12 @@ function logout() {
 /* ===================== ENTER TO SEND ===================== */
 document.addEventListener("DOMContentLoaded", function () {
   const textarea = document.getElementById("content");
-  textarea.addEventListener("keydown", function (event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      createPost();
-    }
-  });
+  if (textarea) {
+    textarea.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        createPost();
+      }
+    });
+  }
 });
