@@ -23,9 +23,8 @@ const upload = multer({
   storage: multerS3({
     s3: s3,
     bucket: process.env.AWS_BUCKET_NAME,
-    // FIX: Disable ACL since bucket doesn't allow them
-    acl: null,  // This prevents multer-s3 from trying to set ACLs
-    // Alternative: You can also use metadata instead
+    // FIX: Remove the acl parameter completely
+    // Don't set acl at all - just use metadata
     metadata: (req, file, cb) => {
       cb(null, { fieldName: file.fieldname });
     },
