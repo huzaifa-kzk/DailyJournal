@@ -23,13 +23,18 @@ const upload = multer({
   storage: multerS3({
     s3: s3,
     bucket: process.env.AWS_BUCKET_NAME,
-    
+    // FIX: Disable ACL since bucket doesn't allow them
+    acl: null,  // This prevents multer-s3 from trying to set ACLs
+    // Alternative: You can also use metadata instead
+    metadata: (req, file, cb) => {
+      cb(null, { fieldName: file.fieldname });
+    },
     key: (req, file, cb) => {
       const fileName = Date.now().toString() + "_" + file.originalname;
       cb(null, fileName);
     },
   }),
-  limits: { fileSize: 10 * 1024 * 1024 }, // max 5MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // max 10MB
   fileFilter: (req, file, cb) => {
     if (
       file.mimetype === "image/jpeg" ||
