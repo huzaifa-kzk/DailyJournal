@@ -11,6 +11,9 @@ const app = express();
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 app.use(cors());
+// Add this near your other middleware (after app.use(cors()))
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use(express.json());
 
 // API routes
