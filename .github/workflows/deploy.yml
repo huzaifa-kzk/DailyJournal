@@ -10,11 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup SSH key
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -22,27 +20,49 @@ jobs:
           chmod 600 ~/.ssh/gitkey
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      # 3️⃣ Connect & deploy
       - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/gitkey ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-
+          
           echo "🚀 Connected to EC2"
-
-          # Go to your project folder (actual repo path)
+          echo "=== Current Directory ==="
+          pwd
+          
+          echo "=== Check if project exists ==="
+          if [ -d "/home/ubuntu/DailyJournal" ]; then
+            echo "✅ Project directory exists"
+            ls -la /home/ubuntu/DailyJournal
+          else
+            echo "❌ Project directory NOT found!"
+            exit 1
+          fi
+          
+          echo "=== Git Status Before ==="
           cd /home/ubuntu/DailyJournal
-
-          # Pull latest code from git
-          git reset --hard
-          git pull origin main
-
-          # Install backend dependencies
+          git status
+          git log -1 --oneline
+          
+          echo "=== Fetching Latest Code ==="
+          git fetch origin main
+          
+          echo "=== Changes being pulled ==="
+          git log HEAD..origin/main --oneline
+          
+          echo "=== Resetting to latest ==="
+          git reset --hard origin/main
+          
+          echo "=== Git Status After ==="
+          git status
+          git log -1 --oneline
+          
+          echo "=== Installing Dependencies ==="
           cd backend
           npm install
-
-          # Restart PM2 process
+          
+          echo "=== Restarting PM2 ==="
           pm2 restart dailyjournal || pm2 start app.js --name dailyjournal
           pm2 save
-
+          pm2 status
+          
           echo "✅ Deployment finished"
           EOF
