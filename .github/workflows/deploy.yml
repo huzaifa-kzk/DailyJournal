@@ -22,47 +22,13 @@ jobs:
 
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/gitkey ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-          
-          echo "🚀 Connected to EC2"
-          echo "=== Current Directory ==="
-          pwd
-          
-          echo "=== Check if project exists ==="
-          if [ -d "/home/ubuntu/DailyJournal" ]; then
-            echo "✅ Project directory exists"
-            ls -la /home/ubuntu/DailyJournal
-          else
-            echo "❌ Project directory NOT found!"
-            exit 1
-          fi
-          
-          echo "=== Git Status Before ==="
-          cd /home/ubuntu/DailyJournal
-          git status
-          git log -1 --oneline
-          
-          echo "=== Fetching Latest Code ==="
-          git fetch origin main
-          
-          echo "=== Changes being pulled ==="
-          git log HEAD..origin/main --oneline
-          
-          echo "=== Resetting to latest ==="
-          git reset --hard origin/main
-          
-          echo "=== Git Status After ==="
-          git status
-          git log -1 --oneline
-          
-          echo "=== Installing Dependencies ==="
-          cd backend
-          npm install
-          
-          echo "=== Restarting PM2 ==="
-          pm2 restart dailyjournal || pm2 start app.js --name dailyjournal
-          pm2 save
-          pm2 status
-          
-          echo "✅ Deployment finished"
-          EOF
+          ssh -i ~/.ssh/gitkey ubuntu@${{ secrets.EC2_HOST }} '
+            cd /home/ubuntu/DailyJournal
+            git checkout main
+            git fetch origin main
+            git reset --hard origin/main
+            cd backend
+            npm install
+            pm2 restart dailyjournal || pm2 start app.js --name dailyjournal
+            pm2 save
+          '
