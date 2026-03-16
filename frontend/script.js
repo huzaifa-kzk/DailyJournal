@@ -1,5 +1,6 @@
 // Automatically works for localhost AND EC2
 const API = window.location.origin + "/api";
+const MAX_FILE_SIZE_MB = 20; // Match your backend limit
 
 /* ===================== SIGNUP ===================== */
 async function signup() {
@@ -54,12 +55,27 @@ async function login() {
 async function createPost() {
   const token = localStorage.getItem("token");
   const contentInput = document.getElementById("content");
-  const fileInput = document.getElementById("image"); // optional image input
+  const fileInput = document.getElementById("image");
   const content = contentInput.value.trim();
 
   if (!token) {
     alert("Please login first");
     return;
+  }
+
+  // Check file size before uploading
+  if (fileInput && fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    const fileSizeMB = file.size / (1024 * 1024);
+    
+    if (fileSizeMB > MAX_FILE_SIZE_MB) {
+      alert(`File too large! Maximum size is ${MAX_FILE_SIZE_MB}MB. Your file is ${fileSizeMB.toFixed(2)}MB`);
+      fileInput.value = ""; // Clear the file input
+      return;
+    }
+    
+    // Optional: Show file info
+    console.log(`Uploading: ${file.name} (${fileSizeMB.toFixed(2)}MB)`);
   }
 
   if (!content && (!fileInput || !fileInput.files.length)) {
@@ -80,12 +96,16 @@ async function createPost() {
       body: formData,
     });
 
-    const data = await res.json();
-
+    // Check if response is OK before parsing JSON
     if (!res.ok) {
-      alert(data.message || "Error creating post");
-      return;
+      if (res.status === 413) {
+        throw new Error("File too large for server");
+      }
+      const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
+      throw new Error(errorData.message || "Error creating post");
     }
+
+    const data = await res.json();
 
     // ✅ Clear inputs after successful post
     contentInput.value = "";
@@ -96,7 +116,7 @@ async function createPost() {
 
   } catch (err) {
     console.error("Post error:", err);
-    alert("Error creating post");
+    alert("Error creating post: " + err.message);
   }
 }
 
@@ -137,12 +157,21 @@ async function loadPosts() {
   let userId = null;
 
   if (token) {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    userId = payload.id;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      userId = payload.id;
+    } catch (e) {
+      console.error("Error decoding token:", e);
+    }
   }
 
   try {
     const res = await fetch(API + "/posts");
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
     const data = await res.json();
 
     const postsDiv = document.getElementById("posts");
@@ -191,6 +220,7 @@ async function loadPosts() {
     console.error("Error loading posts:", err);
   }
 }
+
 /* ===================== DELETE POST ===================== */
 async function deletePost(postId) {
   const token = localStorage.getItem("token");
@@ -205,12 +235,17 @@ async function deletePost(postId) {
       headers: { Authorization: token },
     });
 
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ message: "Delete failed" }));
+      throw new Error(errorData.message);
+    }
+
     const data = await res.json();
     alert(data.message);
     loadPosts();
   } catch (err) {
     console.error("Delete post error:", err);
-    alert("Could not delete post");
+    alert("Could not delete post: " + err.message);
   }
 }
 
@@ -234,6 +269,21 @@ document.addEventListener("DOMContentLoaded", function () {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         createPost();
+      }
+    });
+  }
+
+  // Optional: Add file size indicator
+  const fileInput = document.getElementById("image");
+  if (fileInput) {
+    fileInput.addEventListener("change", function() {
+      if (this.files.length > 0) {
+        const fileSizeMB = this.files[0].size / (1024 * 1024);
+        if (fileSizeMB > MAX_FILE_SIZE_MB) {
+          alert(`Warning: This file is ${fileSizeMB.toFixed(2)}MB. Max allowed is ${MAX_FILE_SIZE_MB}MB.`);
+        } else {
+          console.log(`Selected file: ${this.files[0].name} (${fileSizeMB.toFixed(2)}MB)`);
+        }
       }
     });
   }

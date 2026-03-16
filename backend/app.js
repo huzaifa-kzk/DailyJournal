@@ -7,20 +7,21 @@ const postRoutes = require("./routes/posts");
 
 const app = express();
 
-// Serve frontend from the correct folder (one level up from backend)
-app.use(express.static(path.join(__dirname, "../frontend")));
-
+// ✅ 1. First, set up middleware (order matters!)
 app.use(cors());
-// Add this near your other middleware (after app.use(cors()))
+
+// ✅ 2. Increase JSON and URL-encoded payload limits (before routes)
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
-app.use(express.json());
 
-// API routes
+// ✅ 3. Serve static files
+app.use(express.static(path.join(__dirname, "../frontend")));
+
+// ✅ 4. API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 
-// Fallback route to serve login.html
+// ✅ 5. Fallback route
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend", "login.html"));
 });
