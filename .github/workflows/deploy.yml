@@ -23,12 +23,43 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/gitkey ubuntu@${{ secrets.EC2_HOST }} '
+            # Navigate to project directory
             cd /home/ubuntu/DailyJournal
+            
+            # Pull latest code
             git checkout main
             git fetch origin main
             git reset --hard origin/main
-            cd backend
-            npm install
-            pm2 restart dailyjournal || pm2 start app.js --name dailyjournal
-            pm2 save
+            
+            # Build Docker image
+            echo "🔨 Building Docker image..."
+            docker build -t dailyjournal:latest .
+            
+            # Stop and remove old container
+            echo "🛑 Stopping old container..."
+            docker stop dailyjournal || true
+            docker rm dailyjournal || true
+            
+            # Run new container
+            echo "🚀 Starting new container..."
+            docker run -d \
+              --name dailyjournal \
+              --restart always \
+              -p 3000:3000 \
+              --env-file backend/.env \
+              dailyjournal:latest
+            
+            # Restart Nginx
+            echo "🔄 Restarting Nginx..."
+            sudo systemctl restart nginx
+            
+            # Clean up unused images
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+            
+            # Verify deployment
+            echo "✅ Deployment complete! Checking status..."
+            sleep 3
+            docker ps | grep dailyjournal
+            curl -I http://localhost:3000/api/posts
           '
