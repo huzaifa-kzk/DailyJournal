@@ -20,41 +20,52 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      - name: Get target group instances
+        id: get-instances
+        run: |
+          TG_ARN=$(aws elbv2 describe-target-groups --names dailyjournal-tg-v2 --query 'TargetGroups[0].TargetGroupArn' --output text)
+          INSTANCE_IDS=$(aws elbv2 describe-target-health --target-group-arn $TG_ARN --query 'TargetHealthDescriptions[].Target.Id' --output text)
+          echo "instance_ids=$INSTANCE_IDS" >> $GITHUB_OUTPUT
+          echo "Found instances: $INSTANCE_IDS"
+
       - name: Deploy to EC2 via SSM
         run: |
-          aws ssm send-command \
-            --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceids,Values=${{ secrets.EC2_INSTANCE_ID }}" \
-            --parameters '{
-              "commands": [
-                "#!/bin/bash",
-                "set -e",
-                "",
-                "# Run everything as ubuntu user",
-                "sudo -u ubuntu bash << 'EOF'",
-                "cd /home/ubuntu/DailyJournal",
-                "",
-                "# Git operations",
-                "git fetch origin main",
-                "git reset --hard origin/main",
-                "git clean -fd",
-                "echo \"✅ Deployed commit: $(git log -1 --oneline)\"",
-                "",
-                "# Docker operations",
-                "docker build -t dailyjournal:latest .",
-                "docker stop dailyjournal 2>/dev/null || true",
-                "docker rm dailyjournal 2>/dev/null || true",
-                "docker run -d --name dailyjournal --restart always -p 3000:3000 --env-file backend/.env dailyjournal:latest",
-                "",
-                "# Verify",
-                "sleep 2",
-                "docker ps | grep dailyjournal",
-                "EOF",
-                "",
-                "# Nginx needs root",
-                "sudo systemctl restart nginx",
-                "docker image prune -f"
-              ]
-            }' \
-            --comment "Deploy from GitHub Actions" \
-            --output text
+          for INSTANCE_ID in ${{ steps.get-instances.outputs.instance_ids }}; do
+            echo "Deploying to instance: $INSTANCE_ID"
+            aws ssm send-command \
+              --document-name "AWS-RunShellScript" \
+              --targets "Key=instanceids,Values=$INSTANCE_ID" \
+              --parameters '{
+                "commands": [
+                  "#!/bin/bash",
+                  "set -e",
+                  "",
+                  "# Run everything as ubuntu user",
+                  "sudo -u ubuntu bash << 'EOF'",
+                  "cd /home/ubuntu/DailyJournal",
+                  "",
+                  "# Git operations",
+                  "git fetch origin main",
+                  "git reset --hard origin/main",
+                  "git clean -fd",
+                  "echo \"✅ Deployed commit: $(git log -1 --oneline)\"",
+                  "",
+                  "# Docker operations",
+                  "docker build -t dailyjournal:latest .",
+                  "docker stop dailyjournal 2>/dev/null || true",
+                  "docker rm dailyjournal 2>/dev/null || true",
+                  "docker run -d --name dailyjournal --restart always -p 3000:3000 --env-file backend/.env dailyjournal:latest",
+                  "",
+                  "# Verify",
+                  "sleep 2",
+                  "docker ps | grep dailyjournal",
+                  "EOF",
+                  "",
+                  "# Nginx needs root",
+                  "sudo systemctl restart nginx",
+                  "docker image prune -f"
+                ]
+              }' \
+              --comment "Deploy from GitHub Actions" \
+              --output text
+          done
