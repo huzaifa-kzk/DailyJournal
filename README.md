@@ -347,32 +347,6 @@ This project demonstrates practical experience with:
 - Automated database migrations
 - HTTPS certificate automation
 
-## LinkedIn Project Title
-
-```text
-DailyJournal - Cloud-Native Application Deployment on AWS
-```
-
-## LinkedIn Skills
-
-- Amazon Web Services
-- Amazon EC2
-- Amazon S3
-- Amazon RDS
-- Docker
-- GitHub Actions
-- CI/CD
-- Nginx
-- Linux
-- Node.js
-- MySQL
-- DevOps
-- Cloud Infrastructure
-
-## Architecture Diagram Description
-
-Cloud architecture of the DailyJournal platform deployed on AWS. User traffic is routed through an Application Load Balancer to Linux-based EC2 instances hosting the Dockerized Node.js application behind Nginx. The application stores structured data in Amazon RDS MySQL and media files in Amazon S3, while GitHub Actions automates deployments through a CI/CD pipeline.
-
 ## Author
 
 Huzaifa Kazim
