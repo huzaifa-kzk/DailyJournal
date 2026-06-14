@@ -2,13 +2,13 @@
 
 ## Overview
 
-DailyJournal is a cloud-hosted journal and messaging platform designed to demonstrate modern DevOps practices, AWS infrastructure design, automated deployments, containerized application delivery, and secure application hosting.
+DailyChat is a cloud-hosted journal and messaging platform designed to demonstrate modern DevOps practices, AWS infrastructure design, automated deployments, containerized application delivery, and secure application hosting.
 
 The project focuses on building a production-style deployment environment using AWS services, Docker, GitHub Actions, Linux server administration, and cloud-native architecture. The application supports user authentication, public message posting, image uploads, and secure media storage.
 
 ## Architecture
 
-DailyJournal is deployed on AWS with a cloud architecture that separates application hosting, database storage, media storage, and deployment automation.
+DailyChat is deployed on AWS with a cloud architecture that separates application hosting, database storage, media storage, and deployment automation.
 
 ### Infrastructure Components
 
