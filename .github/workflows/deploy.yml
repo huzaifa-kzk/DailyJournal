@@ -10,21 +10,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2️⃣ Setup SSH key
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/gitkey
-          chmod 600 ~/.ssh/gitkey
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-      # 3️⃣ Connect & deploy
-      - name: Deploy to EC2
+      - name: Get target group instances
+        id: get-instances
         run: |
+          TG_ARN=$(aws elbv2 describe-target-groups --names dailychat-tg --query 'TargetGroups[0].TargetGroupArn' --output text)
+          INSTANCE_IDS=$(aws elbv2 describe-target-health --target-group-arn $TG_ARN --query 'TargetHealthDescriptions[].Target.Id' --output text)
+          echo "instance_ids=$INSTANCE_IDS" >> $GITHUB_OUTPUT
+          echo "Found instances: $INSTANCE_IDS"
+
+      - name: Deploy to EC2 via SSM
+        run: |
+<<<<<<< HEAD
           ssh -i ~/.ssh/gitkey ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
 
           echo "🚀 Connected to EC2"
@@ -47,3 +53,47 @@ jobs:
           echo "✅ Deployment finished"
           EOF
           
+=======
+          for INSTANCE_ID in ${{ steps.get-instances.outputs.instance_ids }}; do
+            echo "Deploying to instance: $INSTANCE_ID"
+            aws ssm send-command \
+              --document-name "AWS-RunShellScript" \
+              --targets "Key=instanceids,Values=$INSTANCE_ID" \
+              --parameters '{
+                "commands": [
+                  "#!/bin/bash",
+                  "set -e",
+                  "",
+                  "cd /home/ubuntu",
+                  "",
+                  "# Backup .env",
+                  "if [ -f \"DailyJournal/backend/.env\" ]; then",
+                  "    cp DailyJournal/backend/.env /tmp/.env.backup",
+                  "fi",
+                  "",
+                  "# Fresh clone (no git safe directory issues)",
+                  "rm -rf DailyJournal",
+                  "git clone https://github.com/huzaifa-kzk/DailyJournal.git",
+                  "cd DailyJournal",
+                  "",
+                  "# Restore .env",
+                  "if [ -f \"/tmp/.env.backup\" ]; then",
+                  "    mv /tmp/.env.backup backend/.env",
+                  "    chmod 600 backend/.env",
+                  "fi",
+                  "",
+                  "echo \"✅ Deployed commit: $(git log -1 --oneline)\"",
+                  "",
+                  "# Build and run",
+                  "docker build -t dailyjournal:latest .",
+                  "docker stop dailyjournal 2>/dev/null || true",
+                  "docker rm dailyjournal 2>/dev/null || true",
+                  "docker run -d --name dailyjournal --restart always -p 3000:3000 --env-file backend/.env dailyjournal:latest",
+                  "sudo systemctl restart nginx",
+                  "docker image prune -f"
+                ]
+              }' \
+              --comment "Deploy from GitHub Actions" \
+              --output text
+          done
+>>>>>>> c19dca73bf198235f500489c340dac96d72c2d62
