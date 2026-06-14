@@ -1,18 +1,31 @@
+# DailyChat - Cloud-Native Application Deployment on AWS
+
+## Overview
 # DailyJournal
 
 ## 1. Project Overview
 
-DailyJournal is a cloud-native chat-style journal platform designed as a DevOps and Cloud Engineering portfolio project. The application allows users to register, authenticate, create posts, upload images, view posts, and delete their own content.
+DailyJournal is a cloud-hosted journal and messaging platform designed to demonstrate modern DevOps practices, AWS infrastructure design, automated deployments, containerized application delivery, and secure application hosting.
 
-The primary focus of this project is not only the application itself, but the production-style AWS architecture behind it: private compute infrastructure, automated deployments, containerized services, reverse proxy configuration, managed database storage, object storage, secure access patterns, and scalable cloud infrastructure.
+The project focuses on building a production-style deployment environment using AWS services, Docker, GitHub Actions, Linux server administration, and cloud-native architecture. The application supports user authentication, public message posting, image uploads, and secure media storage.
 
-The backend is built with Node.js and Express, runs inside Docker containers, stores relational data in Amazon RDS MySQL, and stores uploaded media in Amazon S3. Deployment is automated through GitHub Actions and AWS Systems Manager, removing the need for direct SSH access to private EC2 instances.
+## Architecture
 
-## 2. Architecture Overview
+DailyJournal is deployed on AWS with a cloud architecture that separates application hosting, database storage, media storage, and deployment automation.
 
-DailyJournal is deployed on AWS using a layered architecture designed around security, scalability, and operational automation.
+### Infrastructure Components
 
-High-level request flow:
+- Amazon EC2 for application hosting
+- Amazon RDS MySQL for relational data storage
+- Amazon S3 for image and media storage
+- Application Load Balancer for traffic routing
+- Docker for application containerization
+- Nginx as a reverse proxy
+- GitHub Actions for CI/CD automation
+- Linux-based server administration
+- Environment-based secrets and configuration management
+
+### Request Flow
 
 ```text
 User
