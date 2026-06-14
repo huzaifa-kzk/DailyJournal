@@ -1,4 +1,4 @@
-# DailyJournal - Cloud-Native Application Deployment on AWS
+# DailyChat - Cloud-Native Application Deployment on AWS
 
 ## Overview
 
