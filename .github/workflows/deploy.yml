@@ -24,36 +24,12 @@ jobs:
         id: get-instances
         run: |
           TG_ARN=$(aws elbv2 describe-target-groups --names dailychat-tg --query 'TargetGroups[0].TargetGroupArn' --output text)
-          INSTANCE_IDS=$(aws elbv2 describe-target-health --target-group-arn $TG_ARN --query 'TargetHealthDescriptions[].Target.Id' --output text)
-          echo "instance_ids=$INSTANCE_IDS" >> $GITHUB_OUTPUT
+          INSTANCE_IDS=$(aws elbv2 describe-target-health --target-group-arn "$TG_ARN" --query 'TargetHealthDescriptions[].Target.Id' --output text)
+          echo "instance_ids=$INSTANCE_IDS" >> "$GITHUB_OUTPUT"
           echo "Found instances: $INSTANCE_IDS"
 
       - name: Deploy to EC2 via SSM
         run: |
-<<<<<<< HEAD
-          ssh -i ~/.ssh/gitkey ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-
-          echo "🚀 Connected to EC2"
-
-          # Go to your project folder (actual repo path)
-          cd /home/ubuntu/DailyJournal
-
-          # Pull latest code from git
-          git reset --hard
-          git pull origin main
-
-          # Install backend dependencies
-          cd backend
-          npm install
-
-          # Restart PM2 process
-          pm2 restart dailyjournal || pm2 start app.js --name dailyjournal
-          pm2 save
-
-          echo "✅ Deployment finished"
-          EOF
-          
-=======
           for INSTANCE_ID in ${{ steps.get-instances.outputs.instance_ids }}; do
             echo "Deploying to instance: $INSTANCE_ID"
             aws ssm send-command \
@@ -66,25 +42,21 @@ jobs:
                   "",
                   "cd /home/ubuntu",
                   "",
-                  "# Backup .env",
                   "if [ -f \"DailyJournal/backend/.env\" ]; then",
                   "    cp DailyJournal/backend/.env /tmp/.env.backup",
                   "fi",
                   "",
-                  "# Fresh clone (no git safe directory issues)",
                   "rm -rf DailyJournal",
                   "git clone https://github.com/huzaifa-kzk/DailyJournal.git",
                   "cd DailyJournal",
                   "",
-                  "# Restore .env",
                   "if [ -f \"/tmp/.env.backup\" ]; then",
                   "    mv /tmp/.env.backup backend/.env",
                   "    chmod 600 backend/.env",
                   "fi",
                   "",
-                  "echo \"✅ Deployed commit: $(git log -1 --oneline)\"",
+                  "echo \"Deployed commit: $(git log -1 --oneline)\"",
                   "",
-                  "# Build and run",
                   "docker build -t dailyjournal:latest .",
                   "docker stop dailyjournal 2>/dev/null || true",
                   "docker rm dailyjournal 2>/dev/null || true",
@@ -96,4 +68,3 @@ jobs:
               --comment "Deploy from GitHub Actions" \
               --output text
           done
->>>>>>> c19dca73bf198235f500489c340dac96d72c2d62

@@ -169,6 +169,10 @@ AWS_REGION=your_aws_region
 AWS_ACCESS_KEY_ID=your_aws_access_key_id
 AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 AWS_BUCKET_NAME=your_s3_bucket_name
+
+FRONTEND_ORIGIN=https://your-domain.com
+RATE_LIMIT_MAX=300
+AUTH_RATE_LIMIT_MAX=30
 ```
 
 ## Database Tables
@@ -255,6 +259,6 @@ EC2_HOST
 ## Notes
 
 - The app name in the folder is `DailyJournal`, but the UI currently says `DailyChat`.
-- Post content is rendered with `innerHTML` in the frontend. Escape user input before rendering to prevent XSS.
-- Deleting a post removes it from MySQL, but uploaded images are not currently deleted from S3.
+- User post content is rendered with DOM text nodes to reduce XSS risk.
+- Deleting a post removes it from MySQL and attempts to delete the uploaded image from S3.
 - There is no `npm start` script yet. The server can be started with `node app.js`.

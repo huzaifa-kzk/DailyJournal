@@ -1,8 +1,6 @@
-// Automatically works for localhost AND EC2
 const API = window.location.origin + "/api";
-const MAX_FILE_SIZE_MB = 20; // Match your backend limit
+const MAX_FILE_SIZE_MB = 20;
 
-/* ===================== SIGNUP ===================== */
 async function signup() {
   const name = document.getElementById("name").value;
   const email = document.getElementById("email").value;
@@ -12,19 +10,17 @@ async function signup() {
     const res = await fetch(API + "/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify({ name, email, password }),
     });
 
     const data = await res.json();
     alert(data.message);
-
   } catch (err) {
     console.error("Signup error:", err);
     alert("Server error. Try again.");
   }
 }
 
-/* ===================== LOGIN ===================== */
 async function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
@@ -44,14 +40,12 @@ async function login() {
     } else {
       alert(data.message);
     }
-
   } catch (err) {
     console.error("Login error:", err);
     alert("Server error. Try again.");
   }
 }
 
-/* ===================== CREATE POST ===================== */
 async function createPost() {
   const token = localStorage.getItem("token");
   const contentInput = document.getElementById("content");
@@ -63,167 +57,187 @@ async function createPost() {
     return;
   }
 
-  // Check file size before uploading
   if (fileInput && fileInput.files.length > 0) {
     const file = fileInput.files[0];
     const fileSizeMB = file.size / (1024 * 1024);
-    
+
     if (fileSizeMB > MAX_FILE_SIZE_MB) {
-      alert(`File too large! Maximum size is ${MAX_FILE_SIZE_MB}MB. Your file is ${fileSizeMB.toFixed(2)}MB`);
-      fileInput.value = ""; // Clear the file input
+      alert(`File too large. Maximum size is ${MAX_FILE_SIZE_MB}MB.`);
+      fileInput.value = "";
       return;
     }
-    
-    // Optional: Show file info
-    console.log(`Uploading: ${file.name} (${fileSizeMB.toFixed(2)}MB)`);
   }
 
   if (!content && (!fileInput || !fileInput.files.length)) {
-    return; // don't send empty message
+    return;
   }
 
   try {
-    // Use FormData to send text + optional image
     const formData = new FormData();
     formData.append("content", content);
+
     if (fileInput && fileInput.files.length > 0) {
       formData.append("image", fileInput.files[0]);
     }
 
     const res = await fetch(API + "/posts", {
       method: "POST",
-      headers: { Authorization: token },
+      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
 
-    // Check if response is OK before parsing JSON
     if (!res.ok) {
       if (res.status === 413) {
         throw new Error("File too large for server");
       }
+
       const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
       throw new Error(errorData.message || "Error creating post");
     }
 
-    const data = await res.json();
-
-    // ✅ Clear inputs after successful post
     contentInput.value = "";
     if (fileInput) fileInput.value = "";
 
     loadPosts();
     contentInput.focus();
-
   } catch (err) {
     console.error("Post error:", err);
     alert("Error creating post: " + err.message);
   }
 }
 
-/* ===================== HELPER FUNCTION TO FORMAT TIME ===================== */
 function formatMessageTime(dateString) {
   const date = new Date(dateString);
   const now = new Date();
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
-  
-  // Format time (e.g., "3:45 PM")
+
   let hours = date.getHours();
   let minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12;
-  hours = hours ? hours : 12; // 0 becomes 12
-  minutes = minutes < 10 ? '0' + minutes : minutes;
+  hours = hours || 12;
+  minutes = minutes < 10 ? "0" + minutes : minutes;
   const timeString = `${hours}:${minutes} ${ampm}`;
-  
-  // Check if it's today
+
   if (date.toDateString() === now.toDateString()) {
     return `Today at ${timeString}`;
   }
-  // Check if it's yesterday
-  else if (date.toDateString() === yesterday.toDateString()) {
+
+  if (date.toDateString() === yesterday.toDateString()) {
     return `Yesterday at ${timeString}`;
   }
-  // Otherwise show the date
-  else {
-    const options = { month: 'short', day: 'numeric', year: 'numeric' };
-    return `${date.toLocaleDateString('en-US', options)} at ${timeString}`;
-  }
+
+  const options = { month: "short", day: "numeric", year: "numeric" };
+  return `${date.toLocaleDateString("en-US", options)} at ${timeString}`;
 }
 
-/* ===================== LOAD POSTS ===================== */
 async function loadPosts() {
   const token = localStorage.getItem("token");
+
+  if (!token) {
+    window.location = "login.html";
+    return;
+  }
+
   let userId = null;
 
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      userId = payload.id;
-    } catch (e) {
-      console.error("Error decoding token:", e);
-    }
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    userId = payload.id;
+  } catch (err) {
+    console.error("Error decoding token:", err);
+    localStorage.removeItem("token");
+    window.location = "login.html";
+    return;
   }
 
   try {
-    const res = await fetch(API + "/posts");
-    
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    
-    const data = await res.json();
+    const res = await fetch(API + "/posts", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
+    if (res.status === 403) {
+      localStorage.removeItem("token");
+      window.location = "login.html";
+      return;
+    }
+
+    if (!res.ok) {
+      throw new Error(`HTTP error: ${res.status}`);
+    }
+
+    const data = await res.json();
     const postsDiv = document.getElementById("posts");
     if (!postsDiv) return;
 
-    postsDiv.innerHTML = "";
+    postsDiv.replaceChildren();
 
     data.forEach((p) => {
       const isMyMessage = userId === p.user_id;
+      const message = document.createElement("div");
+      message.className = `message ${isMyMessage ? "my-message" : "other-message"}`;
 
-      // Format the time nicely
-      const formattedTime = formatMessageTime(p.created_at);
+      const header = document.createElement("div");
+      header.className = "message-header";
 
-      // Handle image if exists
-      let imageHTML = "";
-      if (p.image_url) {
-        imageHTML = `<img src="${p.image_url}" alt="image" class="chat-image">`;
+      const name = document.createElement("b");
+      name.textContent = p.name || "Unknown";
+
+      const date = document.createElement("span");
+      date.className = "date";
+      date.textContent = ` - ${formatMessageTime(p.created_at)}`;
+
+      header.append(name, date);
+
+      const content = document.createElement("div");
+      content.className = "message-content";
+
+      if (p.content) {
+        const text = document.createElement("p");
+        text.textContent = p.content;
+        content.appendChild(text);
       }
 
-      postsDiv.innerHTML += `
-        <div class="message ${isMyMessage ? "my-message" : "other-message"}">
-          
-          <div class="message-header">
-            <b>${p.name}</b>
-            <span class="date"> — ${formattedTime}</span>
-          </div>
+      if (p.image_url) {
+        try {
+          const imageUrl = new URL(p.image_url, window.location.origin);
 
-          <div class="message-content">
-            ${p.content ? `<p>${p.content}</p>` : ""}
-            ${imageHTML}
-          </div>
-
-          ${
-            isMyMessage
-              ? `<button class="delete-btn" onclick="deletePost(${p.id})">Delete</button>`
-              : ""
+          if (imageUrl.protocol === "https:" || imageUrl.protocol === "http:") {
+            const img = document.createElement("img");
+            img.src = imageUrl.href;
+            img.alt = "Uploaded image";
+            img.className = "chat-image";
+            content.appendChild(img);
           }
+        } catch (err) {
+          console.error("Invalid image URL:", err);
+        }
+      }
 
-        </div>
-      `;
+      message.append(header, content);
+
+      if (isMyMessage) {
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "delete-btn";
+        deleteButton.type = "button";
+        deleteButton.textContent = "Delete";
+        deleteButton.addEventListener("click", () => deletePost(p.id));
+        message.appendChild(deleteButton);
+      }
+
+      postsDiv.appendChild(message);
     });
 
     postsDiv.scrollTop = postsDiv.scrollHeight;
-
   } catch (err) {
     console.error("Error loading posts:", err);
   }
 }
 
-/* ===================== DELETE POST ===================== */
 async function deletePost(postId) {
   const token = localStorage.getItem("token");
+
   if (!token) {
     alert("Please login first");
     return;
@@ -232,7 +246,7 @@ async function deletePost(postId) {
   try {
     const res = await fetch(`${API}/posts/${postId}`, {
       method: "DELETE",
-      headers: { Authorization: token },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
     if (!res.ok) {
@@ -249,21 +263,19 @@ async function deletePost(postId) {
   }
 }
 
-/* ===================== AUTO LOAD DASHBOARD ===================== */
-if (window.location.pathname.includes("dashboard")) {
-  loadPosts();
-  setInterval(loadPosts, 5000);
-}
-
-/* ===================== LOGOUT ===================== */
 function logout() {
   localStorage.removeItem("token");
   window.location = "login.html";
 }
 
-/* ===================== ENTER TO SEND ===================== */
+if (window.location.pathname.includes("dashboard")) {
+  loadPosts();
+  setInterval(loadPosts, 5000);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   const textarea = document.getElementById("content");
+
   if (textarea) {
     textarea.addEventListener("keydown", function (event) {
       if (event.key === "Enter" && !event.shiftKey) {
@@ -273,17 +285,16 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Optional: Add file size indicator
   const fileInput = document.getElementById("image");
+
   if (fileInput) {
-    fileInput.addEventListener("change", function() {
-      if (this.files.length > 0) {
-        const fileSizeMB = this.files[0].size / (1024 * 1024);
-        if (fileSizeMB > MAX_FILE_SIZE_MB) {
-          alert(`Warning: This file is ${fileSizeMB.toFixed(2)}MB. Max allowed is ${MAX_FILE_SIZE_MB}MB.`);
-        } else {
-          console.log(`Selected file: ${this.files[0].name} (${fileSizeMB.toFixed(2)}MB)`);
-        }
+    fileInput.addEventListener("change", function () {
+      if (this.files.length === 0) return;
+
+      const fileSizeMB = this.files[0].size / (1024 * 1024);
+
+      if (fileSizeMB > MAX_FILE_SIZE_MB) {
+        alert(`Warning: this file is ${fileSizeMB.toFixed(2)}MB. Max allowed is ${MAX_FILE_SIZE_MB}MB.`);
       }
     });
   }
